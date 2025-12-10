@@ -20,7 +20,7 @@ npm run dev
 
 ```bash
 npm run build
-docker build -t react-preview-demo .
+docker build -t react-preview-demo -f docker/Dockerfile .
 docker run -p 3000:3000 react-preview-demo
 ```
 
@@ -31,7 +31,7 @@ See [.github/workflows/preview.yml](.github/workflows/preview.yml):
 ```yaml
 - uses: jonasneves/serverless-infra/.github/actions/expose-service@main
   with:
-    dockerfile: ./Dockerfile
+          dockerfile: ./docker/Dockerfile
     port: 3000
 ```
 

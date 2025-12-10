@@ -42,7 +42,7 @@ jobs:
       - uses: jonasneves/serverless-infra/.github/actions/expose-service@main
         id: expose
         with:
-          dockerfile: ./Dockerfile
+          dockerfile: ./docker/Dockerfile
           port: 3000
 
       - uses: actions/github-script@v7
