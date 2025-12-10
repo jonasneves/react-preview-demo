@@ -7,27 +7,22 @@ on:
 
 jobs:
   cleanup:
-    name: Cancel Preview
     if: github.event.action == 'closed'
     runs-on: ubuntu-24.04-arm
     permissions:
       actions: write
     steps:
-      - name: Cancel running workflows
-        uses: actions/github-script@v7
+      - uses: actions/github-script@v7
         with:
           script: |
             const runs = await github.rest.actions.listWorkflowRunsForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'preview.yml',
-              status: 'in_progress',
-              event: 'pull_request'
+              status: 'in_progress'
             });
-
             for (const run of runs.data.workflow_runs) {
               if (run.head_sha === context.payload.pull_request.head.sha) {
-                console.log(`Cancelling run ${run.id}`);
                 await github.rest.actions.cancelWorkflowRun({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -37,82 +32,45 @@ jobs:
             }
 
   preview:
-    name: Deploy Preview
     if: github.event.action != 'closed'
     runs-on: ubuntu-24.04-arm
     permissions:
       pull-requests: write
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build application
-        run: npm run build
-
-      - name: Expose preview via tunnel
+      - uses: jonasneves/serverless-infra/.github/actions/expose-service@main
         id: expose
-        uses: jonasneves/serverless-infra/.github/actions/expose-service@main
         with:
-          port: 4173
-          command: npm run preview
+          dockerfile: ./Dockerfile
+          port: 3000
 
-      - name: Comment PR with preview URL
+      - uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
         with:
           script: |
-            const url = '${{ steps.expose.outputs.url }}';
-            const body = `## Preview Deployed
-
-            Your preview is ready:
-
-            **Preview URL:** ${url}
-
-            The preview will remain active while this workflow runs (up to 6 hours).
-
-            Pushed new commits? The preview will update automatically.`;
-
-            // Find existing comment
+            const body = `Preview: ${{ steps.expose.outputs.url }}`;
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-
-            const botComment = comments.find(comment =>
-              comment.user.type === 'Bot' &&
-              comment.body.includes('Preview Deployed')
-            );
-
-            if (botComment) {
-              // Update existing comment
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes('Preview:'));
+            if (existing) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: body
+                comment_id: existing.id,
+                body
               });
             } else {
-              // Create new comment
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: body
+                body
               });
             }
 
-      - name: Keep workflow alive
-        run: |
-          echo "Preview available at: ${{ steps.expose.outputs.url }}"
-          echo "Keeping workflow active for preview access..."
-          sleep 21600  # 6 hours
+      - name: Keep alive
+        run: sleep 21600

@@ -46,7 +46,7 @@ function App() {
       <footer>
         <p>
           Powered by{' '}
-          <a href="https://github.com/username/serverless-infra" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/jonasneves/serverless-infra" target="_blank" rel="noopener noreferrer">
             serverless-infra
           </a>
         </p>
