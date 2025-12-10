@@ -9,7 +9,7 @@ jobs:
   cleanup:
     name: Cancel Preview
     if: github.event.action == 'closed'
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04-arm
     permissions:
       actions: write
     steps:
@@ -39,7 +39,7 @@ jobs:
   preview:
     name: Deploy Preview
     if: github.event.action != 'closed'
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04-arm
     permissions:
       pull-requests: write
 
