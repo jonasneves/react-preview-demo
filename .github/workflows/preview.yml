@@ -2,13 +2,44 @@ name: PR Preview
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
 jobs:
+  cleanup:
+    name: Cancel Preview
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel running workflows
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'preview.yml',
+              status: 'in_progress',
+              event: 'pull_request'
+            });
+
+            for (const run of runs.data.workflow_runs) {
+              if (run.head_sha === context.payload.pull_request.head.sha) {
+                console.log(`Cancelling run ${run.id}`);
+                await github.rest.actions.cancelWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id
+                });
+              }
+            }
+
   preview:
     name: Deploy Preview
-    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-24.04-arm
     permissions:
       pull-requests: write
 
