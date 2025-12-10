@@ -31,7 +31,7 @@ See [.github/workflows/preview.yml](.github/workflows/preview.yml):
 ```yaml
 - uses: jonasneves/serverless-infra/.github/actions/expose-service@main
   with:
-          dockerfile: ./docker/Dockerfile
+    dockerfile: ./docker/Dockerfile
     port: 3000
 ```
 
